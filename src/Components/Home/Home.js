@@ -16,8 +16,12 @@ import Geolocation from 'react-native-geolocation-service';
 import Geocoder from 'react-native-geocoding';
 import {PermissionsAndroid} from 'react-native';
 import {Linking} from 'react-native';
-
+import NetInfo from "@react-native-community/netinfo";
+import { useNavigation } from '@react-navigation/native';
+import OfflineData from '../OfflineData/OfflineData';
 const Home = () => {
+
+  const navigation = useNavigation()
   const [lat, SetLat] = useState('');
   const [long, setLong] = useState('');
   const [weatherData, setWeatherData] = useState(null);
@@ -28,7 +32,18 @@ const Home = () => {
   const [latitude, setLatitude] = useState();
   const [locationStatus, setLocationStatus] = useState('');
   const [permissionGranted, setPermissionGranted] = useState(true);
+  const [isConnected, setIsConnected] = useState(true);
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      console.log(state.type);
+      console.log(state.isConnected, 'Yes I');
+      setIsConnected(state.isConnected);
+    });
 
+    return () => {
+      unsubscribe();
+    };
+  }, []);
   useEffect(() => {
     const backAction = () => {
       Alert.alert('Hold on!', 'Are you sure you want to go back?', [
@@ -196,7 +211,20 @@ const Home = () => {
         <TouchableOpacity style={styles.btn} onPress={() => getData(lat, long)}>
           <Text style={styles.btnText}>Search</Text>
         </TouchableOpacity>
+        {!isConnected &&<TouchableOpacity
+      onPress={()=>navigation.navigate('OfflineStore')}
+        style={{
+          backgroundColor: 'white',
+          padding: 10,
+          width: '70%',
+          borderRadius: 12,
+          alignSelf: 'center',
+          marginTop: '10%',
+        }}>
+        <Text style={{color:"black",textAlign:'center'}}>Store Offline</Text>
+      </TouchableOpacity>}
       </View>
+      {!isConnected&& <OfflineData/>}
       {weatherData && (
         <Text style={{color: 'white', fontSize: 40, textAlign: 'center'}}>
           {weatherData.temp}°C
