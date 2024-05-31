@@ -242,7 +242,7 @@ const Home = () => {
           />
         </View>
         <TouchableOpacity style={styles.btn} onPress={() => getData()}>
-          <Text style={styles.btnText}>Search</Text>
+          <Text style={styles.btnText}>Current Citt</Text>
         </TouchableOpacity>
         {!isConnected && (
           <TouchableOpacity
