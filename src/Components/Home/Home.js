@@ -19,9 +19,11 @@ import {Linking} from 'react-native';
 import NetInfo from "@react-native-community/netinfo";
 import { useNavigation } from '@react-navigation/native';
 import OfflineData from '../OfflineData/OfflineData';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 const Home = () => {
 
-  const navigation = useNavigation()
+  const navigation = useNavigation();
   const [lat, SetLat] = useState('');
   const [long, setLong] = useState('');
   const [weatherData, setWeatherData] = useState(null);
@@ -33,6 +35,8 @@ const Home = () => {
   const [locationStatus, setLocationStatus] = useState('');
   const [permissionGranted, setPermissionGranted] = useState(true);
   const [isConnected, setIsConnected] = useState(true);
+  const [city,setCity] =useState('')
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       console.log(state.type);
@@ -44,6 +48,7 @@ const Home = () => {
       unsubscribe();
     };
   }, []);
+
   useEffect(() => {
     const backAction = () => {
       Alert.alert('Hold on!', 'Are you sure you want to go back?', [
@@ -64,17 +69,18 @@ const Home = () => {
 
     return () => backHandler.remove();
   }, []);
-  const getData = async (lat, long) => {
-    setWeatherData(null);
-    setDetails(null);
-    if (!lat || !long) {
-      alert('Please Enter Latitude and Longitude');
-      return;
-    }
+
+  const getData = async () => {
+    // setWeatherData(null);
+    // setDetails(null);
+    // if (!lat || !long) {
+    //   alert('Please Enter Latitude and Longitude');
+    //   return;
+    // }
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&appid=${API_Key}&units=metric`,
+        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_Key}&units=metric`,
       );
       if (!response.ok) {
         throw new Error('Failed to fetch data');
@@ -90,6 +96,32 @@ const Home = () => {
       setLoading(false);
     }
   };
+
+  const getCity = async (city) => {
+    if (!city) {
+      alert('Please Enter a City');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_Key}&units=metric`,
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      const data = await response.json();
+      setWeatherData(data.main);
+      setDetails(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      setWeatherData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const Time = val => {
     const date = new Date(val * 1000);
@@ -192,47 +224,42 @@ const Home = () => {
       source={require('../../Asstes/Images/blue.jpg')}
       style={styles.background}>
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={lat}
-          onChangeText={val => SetLat(val)}
-          placeholderTextColor={'white'}
-          placeholder="Enter Latitude"
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={styles.input}
-          value={long}
-          onChangeText={val => setLong(val)}
-          placeholderTextColor={'white'}
-          placeholder="Enter Longitude"
-          keyboardType="numeric"
-        />
-        <TouchableOpacity style={styles.btn} onPress={() => getData(lat, long)}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.input}
+            value={city}
+            onChangeText={val => setCity(val)}
+            placeholderTextColor={'white'}
+            placeholder="Search City"
+            keyboardType='web-search'
+          />
+          <FontAwesome
+            name='search'
+            size={25}
+            color="white"
+            style={styles.searchIcon}
+            onPress={()=>getCity(city)}
+          />
+        </View>
+        <TouchableOpacity style={styles.btn} onPress={() => getData()}>
           <Text style={styles.btnText}>Search</Text>
         </TouchableOpacity>
-        {!isConnected &&<TouchableOpacity
-      onPress={()=>navigation.navigate('OfflineStore')}
-        style={{
-          backgroundColor: 'white',
-          padding: 10,
-          width: '70%',
-          borderRadius: 12,
-          alignSelf: 'center',
-          marginTop: '10%',
-        }}>
-        <Text style={{color:"black",textAlign:'center'}}>Store Offline</Text>
-      </TouchableOpacity>}
+        {!isConnected && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('OfflineStore')}
+            style={styles.offlineBtn}>
+            <Text style={styles.offlineBtnText}>Store Offline</Text>
+          </TouchableOpacity>
+        )}
       </View>
-      {!isConnected&& <OfflineData/>}
+      {!isConnected && <OfflineData />}
       {weatherData && (
         <Text style={{color: 'white', fontSize: 40, textAlign: 'center'}}>
           {weatherData.temp}°C
         </Text>
       )}
-
       {details && (
-        <Text style={{alignSelf:'center'}}>Country :{details.sys.country}</Text>
+        <Text style={{alignSelf: 'center'}}>Country :{details.sys.country}</Text>
       )}
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
         {details && (
@@ -307,17 +334,24 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     marginTop: '10%',
   },
-  input: {
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 2,
     borderColor: 'white',
     borderRadius: 15,
     width: '80%',
     height: 50,
     paddingHorizontal: 20,
-    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  input: {
+    flex: 1,
     color: 'white',
     fontSize: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  searchIcon: {
+    marginLeft: 10,
   },
   btn: {
     backgroundColor: '#1e90ff',
@@ -326,11 +360,24 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20,
   },
   btnText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 20,
+  },
+  offlineBtn: {
+    backgroundColor: 'white',
+    padding: 10,
+    width: '70%',
+    borderRadius: 12,
+    alignSelf: 'center',
+    marginTop: '10%',
+  },
+  offlineBtnText: {
+    color: 'black',
+    textAlign: 'center',
   },
   scrollViewContainer: {
     flexGrow: 1,
